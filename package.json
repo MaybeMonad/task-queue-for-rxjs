@@ -1,6 +1,6 @@
 {
   "name": "task-queue-for-rxjs",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "files": [
     "dist",
     "src/index.d.ts"
