@@ -10,6 +10,11 @@
 
  import { BehaviorSubject, concatMap, debounceTime, mergeMap, Observable, of, Subject, Subscription, zip } from 'rxjs'
 
+ interface Option {
+  taskPacakgeSize?: number
+  tickTime?: number
+ }
+
  export class TaskQueue<T> {
    #tasksConsumer$: Subject<T> = new Subject()
    #queue$: Subject<T[]> = new Subject()
@@ -23,10 +28,12 @@
    #statusSubscription: Subscription | null = null
    #queueSubscription: Subscription | null = null
    #taskPacakgeSize = 1
+   #tickTime = 100
  
-   constructor(subject: Subject<T>, taskPacakgeSize?: number) {
+   constructor(subject: Subject<T>, opt?: Option) {
      this.#tasksConsumer$ = subject
-     this.#taskPacakgeSize = taskPacakgeSize ?? this.#taskPacakgeSize
+     this.#taskPacakgeSize = opt?.taskPacakgeSize ?? this.#taskPacakgeSize
+     this.#tickTime = opt?.tickTime ?? this.#tickTime
    }
  
    unsubscribe() {
@@ -50,7 +57,7 @@
    }
  
    subscribe(execution: (x: T) => Promise<T>) {
-     this.#queueSubscription = this.#queue$.pipe(debounceTime(500)).subscribe(async x => {
+     this.#queueSubscription = this.#queue$.pipe(debounceTime(this.#tickTime)).subscribe(async x => {
        console.groupCollapsed(
          `[Custom Events]: %c TaskQueue::taskPacakgeSize(${this.#taskPacakgeSize}) `,
          `background: #1BA353; color: white; border-radius: 2px;`
