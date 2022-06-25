@@ -14,7 +14,7 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "jsx": "react",
-    "types": ["vite/client", "node", "jest"],
+    // "types": ["vite/client", "node", "jest"],
     "paths": {
       "@/*": ["./src/*"],
       "@components/*": ["./src/components/*"]

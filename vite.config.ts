@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import reactRefresh from '@vitejs/plugin-react-refresh'
 import path from 'path'
 import packageJson from "./package.json";
 
@@ -24,7 +23,6 @@ const fileName = {
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [reactRefresh()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -38,14 +36,14 @@ export default defineConfig({
       formats: ["es", "cjs", "iife"],
       fileName: (format) => fileName[format],
     },
-    rollupOptions: {
-      external: ['react', 'react-dom'],
-      output: {
-        globals: {
-          react: 'react',
-          'react-dom': 'react-dom'
-        }
-      }
-    }
+    // rollupOptions: {
+    //   external: ['react', 'react-dom'],
+    //   output: {
+    //     globals: {
+    //       react: 'react',
+    //       'react-dom': 'react-dom'
+    //     }
+    //   }
+    // }
   }
 })

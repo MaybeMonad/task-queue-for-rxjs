@@ -1,6 +1,12 @@
-# Vite-based Starter for Library Development
+# Task Queue for RxJS
 
-- React
-- TypeScript
-- Tailwind CSS
-- PostCSS
+```ts
+const ob$ = new Subject()
+
+ob$.subscribe(x => {
+  
+})
+
+const taskQueue = new TaskQueue(ob$, 1)
+taskQueue.subscribe()
+```
