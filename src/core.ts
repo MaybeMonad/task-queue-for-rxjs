@@ -1,7 +1,7 @@
 /**
  * TaskQueue for RxJS Subjects
  *
- * 专为控件自定义事件设计的基于 RxJS Subjects 的任务队列，支持异步执行，执行中继等。
+ * 基于 RxJS Subjects 的任务队列，支持异步执行，执行中继等。
  *
  * [#tasksConsumer$] -> [#tasks] -> [#status$::idle] -> [#queue$::throttleTime(500)] -> [Async Execution]
  * [#tasksConsumer$] -> [#tasks] -> [#status$::running] -> [#taskPackages]
