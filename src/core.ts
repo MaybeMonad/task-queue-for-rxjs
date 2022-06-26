@@ -15,22 +15,28 @@
   tickTime?: number
  }
 
+ interface Task extends Object {
+  __taskType__: 'async' | 'sync'
+ }
+
  export class TaskQueue<T> {
-   #tasksConsumer$: Subject<T> = new Subject()
-   #queue$: Subject<T[]> = new Subject()
+   #tasksConsumer$: Subject<T | Task> = new Subject()
+   #queue$: Subject<Task[]> = new Subject()
    /**
     * Store the tasks in the latest queue.
     */
-   #tasks: (T | null)[] = []
+   #tasks: (Task | null)[] = []
    #status$: BehaviorSubject<'idle' | 'running' | 'paused'> = new BehaviorSubject<'idle' | 'running' | 'paused'>('idle')
-   #taskPackages: Observable<T>[] = []
+   #taskPackages: Observable<Task>[] = []
    #taskSourceSubscription: Subscription | null = null
    #statusSubscription: Subscription | null = null
    #queueSubscription: Subscription | null = null
    #taskPacakgeSize = 1
    #tickTime = 100
+   #allTasks = new WeakMap()
  
    constructor(subject: Subject<T>, opt?: Option) {
+    // @ts-ignore
      this.#tasksConsumer$ = subject
      this.#taskPacakgeSize = opt?.taskPacakgeSize ?? this.#taskPacakgeSize
      this.#tickTime = opt?.tickTime ?? this.#tickTime
@@ -45,13 +51,30 @@
    pause() {
      this.#status$.next('paused')
    }
+
+   next(x: T) {
+     const nextValue = new Object(x) as Task
+     nextValue.__taskType__ = 'sync'
+     this.#tasksConsumer$.next(nextValue)
+    }
+    
+    nextAsync(x: T) {
+     const nextValue = new Object(x) as Task
+     nextValue.__taskType__ = 'async'
+    this.#tasksConsumer$.next(nextValue)
+   }
  
-   static async *asyncLoopGenerator<T>(x: T[], exec: (x: T) => Promise<T>) {
+   static async *asyncLoopGenerator<T>(x: Task[], exec: (x: T) => Promise<T>) {
      let i = 0
  
      while (i < x.length) {
-       console.warn(`[Task Queue]: AsyncLoop::[running]::${(x[i] as any)?.action}`)
-       await exec(x[i])
+       console.warn(`[Task Queue]: AsyncLoop::[running]::${(x[i])}`)
+       if (x[i].__taskType__ === 'async') {
+         
+         await exec(x[i].valueOf() as T)
+       } else {
+        exec(x[i].valueOf() as T)
+       }
        yield i++
      }
    }
@@ -86,15 +109,17 @@
        console.groupEnd()
      })
  
-     this.#taskSourceSubscription = this.#tasksConsumer$?.subscribe(action => {
+     this.#taskSourceSubscription = this.#tasksConsumer$?.subscribe(x => {
+        
+      
        switch (this.#status$.value) {
          case 'idle':
            if (this.#tasks.length < this.#taskPacakgeSize + 1) {
-             this.#tasks.push(action)
-             this.#queue$.next(this.#tasks as T[])
+             this.#tasks.push(x as Task)
+             this.#queue$.next(this.#tasks as Task[])
            } else {
              this.#status$.next('running')
-             this.#taskPackages.push(of(action))
+             this.#taskPackages.push(of(x as Task))
            }
  
            break
@@ -102,7 +127,7 @@
          case 'paused':
          case 'running':
          default:
-           this.#taskPackages.push(of(action))
+           this.#taskPackages.push(of(x as Task))
            break
        }
      })
@@ -123,7 +148,7 @@
                return of(i)
              }),
              concatMap(x => {
-               this.#queue$.next(x)
+               this.#queue$.next(x as Task[])
                return x
              })
            )

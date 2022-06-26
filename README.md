@@ -1,18 +1,27 @@
 # Task Queue for RxJS
 
+Checkout: [Code Sandbox Example](https://codesandbox.io/s/task-queue-for-rxjs-g1prs6?file=/src/App.js)
+
 ```ts
 const ob$ = new Subject()
+const subOb$ = new Subject()
 
-ob$.subscribe(async x => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  console.log(x)
+async function asyncFunc() {
+  await new Promise((resolve) => setTimeout(resolve, Math.random(1) * 1000))
+}
+
+// Without [TaskQueue]
+ob$.subscribe(x => {
+  subOb$.next(x)
 })
+subOb$.current.pipe(switchMap(asyncFunc)).subscribe()
 
-const taskQueue = new TaskQueue(ob$)
-taskQueue.subscribe(async x => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  console.log(x)
+// With [TaskQueue]
+const taskQueue = new TaskQueue(subOb$)
+ob$.subscribe(x => {
+  taskQueue.next(x)
+  // or
+  taskQueue.nextAsync(x)
 })
-
-ob$.next()
+taskQueue.subscribe(asyncFunc)
 ```
