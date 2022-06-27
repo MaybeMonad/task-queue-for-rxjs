@@ -14,7 +14,7 @@ async function asyncFunc() {
 ob$.subscribe(x => {
   subOb$.next(x)
 })
-subOb$.current.pipe(switchMap(asyncFunc)).subscribe()
+subOb$.current.pipe(switchMap(asyncFunc)).subscribe()  // <- My main goal is to make sure the [asyncFunc] is executed asyncronously.
 
 // With [TaskQueue]
 const taskQueue = new TaskQueue(subOb$)
