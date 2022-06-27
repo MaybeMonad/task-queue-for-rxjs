@@ -2,7 +2,7 @@
 
 Checkout: [Code Sandbox Example](https://codesandbox.io/s/task-queue-for-rxjs-g1prs6?file=/src/App.js)
 
-![Preview](./preview.png)
+![Preview](https://github.com/captain-martin/task-queue-for-rxjs/blob/master/preview.png)
 
 ```ts
 const ob$ = new Subject()
