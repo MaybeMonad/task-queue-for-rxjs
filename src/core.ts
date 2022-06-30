@@ -1,5 +1,7 @@
 /**
  * TaskQueue for RxJS Subjects
+ * 
+ * @auther captain-martin
  *
  * 基于 RxJS Subjects 的任务队列，支持异步执行，执行中继等。
  *
@@ -46,9 +48,11 @@ export class TaskQueue<T> {
   #tickTime = 100;
   #allTasks = new WeakMap();
 
-  constructor(subject: Subject<T>, opt?: Option) {
-    // @ts-ignore
-    this.#tasksConsumer$ = subject;
+  /**
+   * Subject is not required, which means you can either apply `new TaskQueue()` instead of `new Subject`, or wrap exist subject with `TaskQueue`.
+   */
+  constructor(subject?: Subject<T>, opt?: Option) {
+    this.#tasksConsumer$ = (subject as Subject<T | Task>) ?? new Subject<T | Task>();
     this.#taskPacakgeSize = opt?.taskPacakgeSize ?? this.#taskPacakgeSize;
     this.#tickTime = opt?.tickTime ?? this.#tickTime;
   }

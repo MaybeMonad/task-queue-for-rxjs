@@ -1,8 +1,10 @@
-# Task Queue for RxJS
+# Async Task Queue for RxJS
 
 Checkout: [Code Sandbox Example](https://codesandbox.io/s/task-queue-for-rxjs-g1prs6?file=/src/App.js)
 
 ![Preview](https://github.com/captain-martin/task-queue-for-rxjs/blob/master/preview.png)
+
+You can simply create an instance to get a new `Subject` with queued execution by applying `new TaskQueue()`, as well as wrap your exist `Subject`s with `TaskQueue` like `new TaskQueue(ob$)`.
 
 ```ts
 const ob$ = new Subject()
