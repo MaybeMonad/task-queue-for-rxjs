@@ -3,11 +3,11 @@
  * 
  * @auther captain-martin
  *
- * 基于 RxJS Subjects 的任务队列，支持异步执行，执行中继等。
+ * RxJS Subjects based execution loop, which supports asynchronous execution, interruptible, etc.
  *
- * [#tasksConsumer$] -> [#tasks] -> [#status$::idle] -> [#queue$::throttleTime(500)] -> [Async Execution]
- * [#tasksConsumer$] -> [#tasks] -> [#status$::running] -> [#taskPackages]
- * [#status$::idle] -> [#taskPackages] -> [#queue$::throttleTime(500)] -> [Async Execution]
+ * [#tasksConsumer$] -> [#tasks] -> [status$::idle] -> [#queue$::throttleTime(500)] -> [Async Execution]
+ * [#tasksConsumer$] -> [#tasks] -> [status$::running] -> [#taskPackages]
+ * [status$::idle] -> [#taskPackages] -> [#queue$::throttleTime(500)] -> [Async Execution]
  */
 
 import {
@@ -38,15 +38,19 @@ export class TaskQueue<T> {
    * Store the tasks in the latest queue.
    */
   #tasks: (Task | null)[] = [];
-  #status$: BehaviorSubject<"idle" | "running" | "paused"> =
-    new BehaviorSubject<"idle" | "running" | "paused">("idle");
   #taskPackages: Observable<Task>[] = [];
   #taskSourceSubscription: Subscription | null = null;
   #statusSubscription: Subscription | null = null;
   #queueSubscription: Subscription | null = null;
+  /**
+   * For 
+   */
+	#resolve: ((x: T | Task) => void) | null = null
   #taskPacakgeSize = 1;
-  #tickTime = 100;
+  #tickTime = 0;
   #allTasks = new WeakMap();
+
+  readonly status$ = new BehaviorSubject<'idle' | 'running' | 'paused'>('idle')
 
   /**
    * Subject is not required, which means you can either apply `new TaskQueue()` instead of `new Subject`, or wrap exist subject with `TaskQueue`.
@@ -64,7 +68,7 @@ export class TaskQueue<T> {
   }
 
   pause() {
-    this.#status$.next("paused");
+    this.status$.next("paused");
   }
 
   next(x: T) {
@@ -73,10 +77,15 @@ export class TaskQueue<T> {
     this.#tasksConsumer$.next(nextValue);
   }
 
-  nextAsync(x: T) {
+  async nextAsync(x: T) {
     const nextValue = new Object(x) as Task;
     nextValue.__taskType__ = "async";
-    this.#tasksConsumer$.next(nextValue);
+    await new Promise(resolve => {
+			this.#resolve = resolve
+			this.#tasksConsumer$.next(nextValue)
+		})
+
+		this.#resolve = null
   }
 
   static async *asyncLoopGenerator<T>(x: Task[], exec: (x: T) => Promise<T>) {
@@ -104,40 +113,41 @@ export class TaskQueue<T> {
           `background: #1BA353; color: white; border-radius: 2px;`
         );
 
-        if (this.#status$.value === "paused") return;
+        if (this.status$.value === "paused") return;
 
         if (x instanceof Array) {
-          this.#status$.next("running");
+          this.status$.next("running");
           for await (const result of TaskQueue.asyncLoopGenerator(
             x,
             execution
           )) {
             this.#tasks[result] = null;
+            this.#resolve?.(x[result]) // Resolve current task
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            if (this.#status$.value === "pause") break;
+            if (this.status$.value === "pause") break;
           }
 
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          if (this.#status$.value === "pause") return;
+          if (this.status$.value === "pause") return;
 
           this.#tasks = [];
-          this.#status$.next("idle");
+          this.status$.next("idle");
         }
 
         console.groupEnd();
       });
 
     this.#taskSourceSubscription = this.#tasksConsumer$?.subscribe((x) => {
-      switch (this.#status$.value) {
+      switch (this.status$.value) {
         case "idle":
           if (this.#tasks.length < this.#taskPacakgeSize + 1) {
             this.#tasks.push(x as Task);
             this.#queue$.next(this.#tasks as Task[]);
           } else {
-            this.#status$.next("running");
+            this.status$.next("running");
             this.#taskPackages.push(of(x as Task));
           }
 
@@ -151,7 +161,7 @@ export class TaskQueue<T> {
       }
     });
 
-    this.#statusSubscription = this.#status$.subscribe((status) => {
+    this.#statusSubscription = this.status$.subscribe((status) => {
       console.warn(`[Custom Events]: TaskQueue::${status}`);
       if (status === "idle" && this.#taskPackages.length > 0) {
         zip(this.#taskPackages.splice(0, this.#taskPacakgeSize))

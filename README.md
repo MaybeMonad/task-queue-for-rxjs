@@ -29,3 +29,48 @@ ob$.subscribe(x => {
 })
 taskQueue.subscribe(asyncFunc)
 ```
+
+## `TaskQueue`
+
+```ts
+interface Option {
+  taskPacakgeSize?: number; // Maximum tasks in an execution, default is 1
+  tickTime?: number; // Debounce Time(ms), default is 0
+}
+```
+
+## `Reconciler`
+
+Reconciler is a tool to schedule the executions between different Observables.
+
+```ts
+const ob1$ = new TaskQueue()
+const ob2$ = new TaskQueue()
+const ob3$ = new TaskQueue()
+
+const asyncFunc = async (x) => {
+  await new Promise(resolve => setTimeout(resolve, Math.random(1) * 1000))
+  console.log(x)
+}
+
+// Without Reconciler
+ob1$.next(1)
+ob2$.next(2)
+ob3$.next(3)
+
+ob1$.subscribe(console.log)
+ob2$.subscribe(console.log)
+ob3$.subscribe(console.log)
+
+
+// With Reconciler
+const executor = new Reconciler(ob1$, ob2$, ob3$)
+
+executor.next(1, ob$1)
+executor.next(2, ob$2)
+executor.next(3, ob$3)
+
+ob1$.subscribe(console.log)
+ob2$.subscribe(console.log)
+ob3$.subscribe(console.log)
+```
